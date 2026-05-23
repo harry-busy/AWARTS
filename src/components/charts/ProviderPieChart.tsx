@@ -20,6 +20,7 @@ const chartConfig: ChartConfig = {
   codex: { label: 'Codex', color: PROVIDERS.codex.color },
   gemini: { label: 'Gemini', color: PROVIDERS.gemini.color },
   antigravity: { label: 'Antigravity', color: PROVIDERS.antigravity.color },
+  cursor: { label: 'Cursor', color: PROVIDERS.cursor.color },
 };
 
 export function ProviderPieChart({ data }: ProviderPieChartProps) {

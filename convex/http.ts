@@ -1,5 +1,5 @@
 import { httpRouter } from "convex/server";
-import { httpAction } from "./_generated/server";
+import { httpAction, type ActionCtx } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 
 const http = httpRouter();
@@ -21,7 +21,7 @@ function getCorsHeaders(request?: Request): Record<string, string> {
   return {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
@@ -58,6 +58,35 @@ function jsonResponse(data: unknown, request?: Request, status = 200) {
 
 function errorResponse(message: string, request?: Request, status = 400) {
   return new Response(JSON.stringify({ error: message }), { status, headers: getCorsHeaders(request) });
+}
+
+function getBearerToken(request: Request): string | undefined {
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return undefined;
+  const token = authHeader.slice(7).trim();
+  return token.length >= 10 ? token : undefined;
+}
+
+async function withApiRateLimit(
+  ctx: ActionCtx,
+  key: string,
+  maxRequests: number,
+  request?: Request,
+): Promise<Response | null> {
+  const ip = getClientIp(request ?? new Request("http://localhost"));
+  const rateCheck = await ctx.runMutation(internal.rateLimit.checkRateLimit, {
+    key: `${key}:${ip}`,
+    maxRequests,
+    windowMs: 60_000,
+  });
+  if (!rateCheck.allowed) {
+    const headers = {
+      ...getCorsHeaders(request),
+      "Retry-After": String(Math.ceil(rateCheck.retryAfterMs / 1000)),
+    };
+    return new Response(JSON.stringify({ error: "Too many requests" }), { status: 429, headers });
+  }
+  return null;
 }
 
 // ─── CLI Auth: Init (rate-limited) ──────────────────────────────────
@@ -362,11 +391,215 @@ http.route({
   }),
 });
 
+// ─── Public REST API v1 ───────────────────────────────────────────────
+
+http.route({
+  path: "/api/v1/open-stats",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const limited = await withApiRateLimit(ctx, "v1_open_stats", 60, request);
+    if (limited) return limited;
+    try {
+      const stats = await ctx.runQuery(api.openStats.getOpenStats, {});
+      return jsonResponse({ data: stats }, request);
+    } catch {
+      return errorResponse("Failed to load open stats", request, 500);
+    }
+  }),
+});
+
+http.route({
+  pathPrefix: "/api/v1/users/",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const limited = await withApiRateLimit(ctx, "v1_users", 120, request);
+    if (limited) return limited;
+
+    const url = new URL(request.url);
+    const path = url.pathname.replace(/^\/api\/v1\/users\//, "");
+    const parts = path.split("/").filter(Boolean);
+    const username = parts[0];
+    if (!username || !/^[a-z0-9_]{1,30}$/.test(username)) {
+      return errorResponse("Invalid username", request);
+    }
+
+    const token = getBearerToken(request);
+
+    if (parts[1] === "usage") {
+      const data = await ctx.runQuery(api.publicApi.getPublicUserUsage, {
+        username,
+        from: url.searchParams.get("from") ?? undefined,
+        to: url.searchParams.get("to") ?? undefined,
+        provider: url.searchParams.get("provider") ?? undefined,
+        authToken: token,
+      });
+      if (!data) return errorResponse("User not found", request, 404);
+      if ("error" in data && data.error === "private_profile") {
+        return errorResponse("Profile is private", request, 403);
+      }
+      return jsonResponse({ data }, request);
+    }
+
+    if (parts.length > 1) {
+      return errorResponse("Not found", request, 404);
+    }
+
+    const data = await ctx.runQuery(api.publicApi.getPublicUser, {
+      username,
+      authToken: token,
+    });
+    if (!data) return errorResponse("User not found", request, 404);
+    return jsonResponse({ data }, request);
+  }),
+});
+
+http.route({
+  path: "/api/v1/me",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const limited = await withApiRateLimit(ctx, "v1_me", 60, request);
+    if (limited) return limited;
+    const token = getBearerToken(request);
+    if (!token) return errorResponse("Missing Authorization header", request, 401);
+    try {
+      const data = await ctx.runQuery(api.publicApi.getAuthenticatedMe, { authToken: token });
+      return jsonResponse({ data }, request);
+    } catch {
+      return errorResponse("Authentication failed", request, 401);
+    }
+  }),
+});
+
+http.route({
+  path: "/api/v1/leaderboard",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const limited = await withApiRateLimit(ctx, "v1_leaderboard", 60, request);
+    if (limited) return limited;
+    const url = new URL(request.url);
+    const data = await ctx.runQuery(api.publicApi.getPublicLeaderboard, {
+      period: url.searchParams.get("period") ?? "all_time",
+      provider: url.searchParams.get("provider") ?? undefined,
+      limit: url.searchParams.get("limit") ? Number(url.searchParams.get("limit")) : undefined,
+    });
+    return jsonResponse({ data }, request);
+  }),
+});
+
+http.route({
+  path: "/api/v1/usage",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    if (!validateOrigin(request)) {
+      return errorResponse("Forbidden", request, 403);
+    }
+    const limited = await withApiRateLimit(ctx, "v1_usage_submit", 30, request);
+    if (limited) return limited;
+
+    const token = getBearerToken(request);
+    if (!token) return errorResponse("Missing Authorization header", request, 401);
+
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return errorResponse("Invalid JSON body", request);
+    }
+    if (!Array.isArray(body.entries)) {
+      return errorResponse("entries must be an array", request);
+    }
+    if (body.entries.length > 500) {
+      return errorResponse("Too many entries (max 500)", request);
+    }
+
+    const validSources = ["cli", "web", "api", "mcp"];
+    const source = validSources.includes(body.source) ? body.source : "api";
+
+    try {
+      const result = await ctx.runMutation(api.usage.submitUsage, {
+        entries: body.entries,
+        source,
+        hash: body.hash,
+        authToken: token,
+        note: typeof body.note === "string" ? body.note.slice(0, 2000) : undefined,
+      });
+      return jsonResponse({ data: result }, request);
+    } catch (err: any) {
+      const isAuth = err.message?.includes("Not authenticated") || err.message?.includes("Token expired");
+      return errorResponse(isAuth ? "Authentication failed" : "Usage submission failed", request, isAuth ? 401 : 400);
+    }
+  }),
+});
+
+http.route({
+  path: "/api/v1/mcp/log",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const limited = await withApiRateLimit(ctx, "v1_mcp_log", 120, request);
+    if (limited) return limited;
+    const token = getBearerToken(request);
+    if (!token) return errorResponse("Missing Authorization header", request, 401);
+
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return errorResponse("Invalid JSON body", request);
+    }
+    if (!body.tool_name || typeof body.tool_name !== "string") {
+      return errorResponse("tool_name is required", request);
+    }
+
+    try {
+      const result = await ctx.runMutation(api.mcpUsage.logToolCall, {
+        authToken: token,
+        toolName: body.tool_name,
+        success: body.success !== false,
+        durationMs: typeof body.duration_ms === "number" ? body.duration_ms : undefined,
+        tokensEstimate: typeof body.tokens_estimate === "number" ? body.tokens_estimate : undefined,
+        metadata: typeof body.metadata === "string" ? body.metadata : undefined,
+        source: body.source ?? "mcp",
+      });
+      return jsonResponse({ data: result }, request);
+    } catch {
+      return errorResponse("Authentication failed", request, 401);
+    }
+  }),
+});
+
+http.route({
+  path: "/api/v1/mcp/logs",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const limited = await withApiRateLimit(ctx, "v1_mcp_logs", 60, request);
+    if (limited) return limited;
+    const token = getBearerToken(request);
+    if (!token) return errorResponse("Missing Authorization header", request, 401);
+    const url = new URL(request.url);
+    try {
+      const data = await ctx.runQuery(api.mcpUsage.getMyLogs, {
+        authToken: token,
+        limit: url.searchParams.get("limit") ? Number(url.searchParams.get("limit")) : undefined,
+      });
+      return jsonResponse({ data }, request);
+    } catch {
+      return errorResponse("Authentication failed", request, 401);
+    }
+  }),
+});
+
 // ─── CORS Preflight ──────────────────────────────────────────────────
 http.route({ path: "/api/auth/cli/init", method: "OPTIONS", handler: preflightHandler });
 http.route({ path: "/api/auth/cli/poll", method: "OPTIONS", handler: preflightHandler });
 http.route({ path: "/api/usage/submit", method: "OPTIONS", handler: preflightHandler });
 http.route({ path: "/api/usage/cleanup", method: "OPTIONS", handler: preflightHandler });
 http.route({ path: "/api/embed", method: "OPTIONS", handler: preflightHandler });
+http.route({ path: "/api/v1/open-stats", method: "OPTIONS", handler: preflightHandler });
+http.route({ path: "/api/v1/me", method: "OPTIONS", handler: preflightHandler });
+http.route({ path: "/api/v1/leaderboard", method: "OPTIONS", handler: preflightHandler });
+http.route({ path: "/api/v1/usage", method: "OPTIONS", handler: preflightHandler });
+http.route({ path: "/api/v1/mcp/log", method: "OPTIONS", handler: preflightHandler });
+http.route({ path: "/api/v1/mcp/logs", method: "OPTIONS", handler: preflightHandler });
+http.route({ pathPrefix: "/api/v1/users/", method: "OPTIONS", handler: preflightHandler });
 
 export default http;

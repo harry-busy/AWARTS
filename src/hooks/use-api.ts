@@ -678,3 +678,35 @@ export function useVelocityMetrics(skip = false) {
     isLoading: result === undefined && !skip,
   };
 }
+
+// ─── API Keys ─────────────────────────────────────────────────────────
+
+export function useApiKeys() {
+  const result = useQuery(api.apiKeys.listMyKeys);
+  return {
+    data: result ?? [],
+    isLoading: result === undefined,
+  };
+}
+
+export function useCreateApiKey() {
+  return useMutationWithPending<{ name: string; scopes?: string[] }, { key: string; keyPrefix: string; name: string }>(
+    api.apiKeys.createKey
+  );
+}
+
+export function useRevokeApiKey() {
+  return useMutationWithPending<{ keyId: Id<"api_keys"> }, { success: boolean }>(
+    api.apiKeys.revokeKey
+  );
+}
+
+// ─── Cursor analytics ─────────────────────────────────────────────────
+
+export function useCursorDetails(skip = false) {
+  const result = useQuery(api.analyticsCursor.getCursorDetails, skip ? "skip" : {});
+  return {
+    data: result ?? null,
+    isLoading: result === undefined && !skip,
+  };
+}

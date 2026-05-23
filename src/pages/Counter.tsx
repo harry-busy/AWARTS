@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Activity, Zap, Database, TrendingUp, Cpu, Calendar, Flame, Gauge } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import type { Provider } from '@/lib/types';
+import { CursorStatsPanel } from '@/components/CursorStatsPanel';
 
 export default function Counter() {
   return (
@@ -85,6 +86,8 @@ function CounterContent() {
           <Activity className="h-6 w-6 text-primary" />
           <h1 className="text-2xl font-bold text-foreground">Counter</h1>
         </div>
+
+        <CursorStatsPanel />
 
         {/* ───── Today's Stats ───── */}
         <motion.div

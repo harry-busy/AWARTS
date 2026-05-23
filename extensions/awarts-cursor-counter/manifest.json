@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "AWARTS: Cursor Usage Sync",
+  "version": "0.1.0",
+  "description": "Sync Cursor IDE token usage and agent stats to AWARTS.",
+  "permissions": ["storage", "alarms"],
+  "host_permissions": [
+    "https://honorable-bee-242.convex.site/*",
+    "https://awarts.club/*",
+    "https://www.cursor.com/*",
+    "https://cursor.com/*"
+  ],
+  "action": {
+    "default_title": "AWARTS Cursor Sync",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.cursor.com/*", "https://cursor.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

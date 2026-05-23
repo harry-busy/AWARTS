@@ -200,6 +200,30 @@ export default defineSchema({
   })
     .index("by_key", ["key", "timestamp"]),
 
+  api_keys: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    keyHash: v.string(),
+    keyPrefix: v.string(),
+    scopes: v.array(v.string()),
+    lastUsedAt: v.optional(v.number()),
+    revokedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_key_hash", ["keyHash"]),
+
+  mcp_usage_logs: defineTable({
+    userId: v.id("users"),
+    apiKeyId: v.optional(v.id("api_keys")),
+    toolName: v.string(),
+    success: v.boolean(),
+    durationMs: v.optional(v.number()),
+    tokensEstimate: v.optional(v.number()),
+    metadata: v.optional(v.string()),
+    source: v.optional(v.string()),
+  })
+    .index("by_user_time", ["userId"]),
+
   token_rich_companies: defineTable({
     name: v.string(),
     url: v.string(),

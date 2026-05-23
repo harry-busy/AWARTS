@@ -186,7 +186,7 @@ const ACHIEVEMENT_META: Record<string, { name: string; emoji: string; descriptio
   'big-spender-100': { name: 'Big Spender', emoji: '💸', description: 'Spend $100 total' },
   'big-spender-1000': { name: 'Whale', emoji: '🐳', description: 'Spend $1000 total' },
   'multi-provider': { name: 'Polyglot Coder', emoji: '🌐', description: 'Use 2+ providers' },
-  'all-providers': { name: 'Full Stack AI', emoji: '🤖', description: 'Use all 4 providers' },
+  'all-providers': { name: 'Full Stack AI', emoji: '🤖', description: 'Use all 5 providers' },
 };
 
 export function transformAchievement(raw: any): Achievement {

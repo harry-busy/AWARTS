@@ -34,6 +34,7 @@ const PROVIDER_COLORS: Record<string, string> = {
   codex: '#22C55E',
   gemini: '#3B82F6',
   antigravity: '#A855F7',
+  cursor: '#06B6D4',
 };
 
 const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";

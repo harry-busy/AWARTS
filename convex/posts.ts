@@ -99,12 +99,10 @@ export const createOrUpdatePost = mutation({
       .unique();
 
     // Get all usage entries for this date
-    const usageEntries = await ctx.db
+    const usageEntries = (await ctx.db
       .query("daily_usage")
-      .withIndex("by_user_date_provider", (q) =>
-        q.eq("userId", me._id).eq("date", usageDate)
-      )
-      .collect();
+      .withIndex("by_user", (q) => q.eq("userId", me._id))
+      .collect()).filter((e) => e.date === usageDate);
 
     const providers = [...new Set(usageEntries.map((e) => e.provider))];
 

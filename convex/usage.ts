@@ -3,6 +3,8 @@ import { mutation } from "./_generated/server";
 import { getCurrentUser } from "./users";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
+import { resolveBearerToken } from "./lib/apiAuth";
+import { isValidProvider, ALL_PROVIDERS_COUNT } from "./lib/providers";
 
 const usageEntryValidator = v.object({
   date: v.string(),
@@ -46,25 +48,13 @@ export const submitUsage = mutation({
     note: v.optional(v.string()),
   },
   handler: async (ctx, { entries, source, hash, authToken, note }) => {
-    // Try Clerk auth first (browser), then fall back to CLI token auth
     let me = await getCurrentUser(ctx);
-
     if (!me && authToken) {
-      // CLI token auth: look up the token in cli_auth_codes
-      const authRow = await ctx.db
-        .query("cli_auth_codes")
-        .withIndex("by_jwt", (q) => q.eq("jwtToken", authToken))
-        .first();
-
-      if (authRow && authRow.status === "verified" && authRow.userId) {
-        // Check token expiry (90 days)
-        if (authRow.tokenExpiresAt && authRow.tokenExpiresAt < Date.now()) {
-          throw new Error("Token expired. Please re-authenticate with `awarts login`.");
-        }
-        me = await ctx.db.get(authRow.userId);
-        // Update lastUsedAt
-        if (me) {
-          await ctx.db.patch(authRow._id, { lastUsedAt: Date.now() });
+      const resolved = await resolveBearerToken(ctx, authToken);
+      if (resolved) {
+        me = resolved.user;
+        if (resolved.apiKeyId) {
+          await ctx.db.patch(resolved.apiKeyId, { lastUsedAt: Date.now() });
         }
       }
     }
@@ -75,7 +65,7 @@ export const submitUsage = mutation({
     let processed = 0;
     const affectedDates = new Set<string>();
 
-    const validProviders = ["claude", "codex", "gemini", "antigravity"];
+    const validProviders = ["claude", "codex", "gemini", "antigravity", "cursor"];
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     const today = new Date().toISOString().split("T")[0];
 
@@ -87,7 +77,7 @@ export const submitUsage = mutation({
     const dedupedEntries = [...dedupMap.values()];
 
     for (const entry of dedupedEntries) {
-      if (!validProviders.includes(entry.provider)) {
+      if (!isValidProvider(entry.provider)) {
         errors.push({ date: entry.date, provider: entry.provider, error: "Invalid provider" });
         continue;
       }
@@ -288,7 +278,7 @@ async function checkAchievements(
     { slug: "big-spender-100", condition: totalCost >= 100 },
     { slug: "big-spender-1000", condition: totalCost >= 1000 },
     { slug: "multi-provider", condition: uniqueProviders.size >= 2 },
-    { slug: "all-providers", condition: uniqueProviders.size >= 4 },
+    { slug: "all-providers", condition: uniqueProviders.size >= ALL_PROVIDERS_COUNT },
   ];
 
   for (const { slug, condition } of checks) {
@@ -314,18 +304,9 @@ export const cleanupUsage = mutation({
   },
   handler: async (ctx, { beforeDate, dates, authToken }) => {
     let me = await getCurrentUser(ctx);
-
     if (!me && authToken) {
-      const authRow = await ctx.db
-        .query("cli_auth_codes")
-        .withIndex("by_jwt", (q) => q.eq("jwtToken", authToken))
-        .first();
-      if (authRow && authRow.status === "verified" && authRow.userId) {
-        if (authRow.tokenExpiresAt && authRow.tokenExpiresAt < Date.now()) {
-          throw new Error("Token expired. Please re-authenticate with `awarts login`.");
-        }
-        me = await ctx.db.get(authRow.userId);
-      }
+      const resolved = await resolveBearerToken(ctx, authToken);
+      if (resolved) me = resolved.user;
     }
 
     if (!me) throw new Error("Not authenticated");
@@ -428,12 +409,12 @@ export const importUsage = mutation({
     let processed = 0;
     const affectedDates = new Set<string>();
 
-    const validProviders = ["claude", "codex", "gemini", "antigravity"];
+    const validProviders = ["claude", "codex", "gemini", "antigravity", "cursor"];
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     const today = new Date().toISOString().split("T")[0];
 
     for (const entry of entries) {
-      if (!validProviders.includes(entry.provider)) {
+      if (!isValidProvider(entry.provider)) {
         errors.push({ date: entry.date, provider: entry.provider, error: "Invalid provider" });
         continue;
       }

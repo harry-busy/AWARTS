@@ -33,7 +33,7 @@ export const searchUsers = query({
 
     // If provider filter, check usage data (single indexed query per user)
     if (provider) {
-      const validProviders = ["claude", "codex", "gemini", "antigravity"];
+      const validProviders = ["claude", "codex", "gemini", "antigravity", "cursor"];
       if (validProviders.includes(provider)) {
         const filtered = [];
         for (const user of results) {

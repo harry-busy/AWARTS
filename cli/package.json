@@ -1,7 +1,7 @@
 {
   "name": "awarts",
   "version": "0.3.3",
-  "description": "Track your AI coding across Claude, Codex, Gemini & Antigravity",
+  "description": "Track your AI coding across Claude, Codex, Gemini, Antigravity & Cursor",
   "type": "module",
   "license": "MIT",
   "author": "Harshal Jain <harshaljaincs@gmail.com> (https://github.com/HarshalJain-cs)",
@@ -22,6 +22,7 @@
     "codex",
     "gemini",
     "antigravity",
+    "cursor",
     "developer-tools",
     "cli",
     "usage-tracking",

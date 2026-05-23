@@ -1,0 +1,35 @@
+{
+  "name": "@awarts/mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for AWARTS — read stats, submit usage, track MCP tool calls",
+  "type": "module",
+  "license": "MIT",
+  "author": "Harshal Jain <harshaljaincs@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HarshalJain-cs/AWARTS.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://awarts.club/docs",
+  "bin": {
+    "awarts-mcp": "dist/index.js"
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc && node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.0",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["mcp", "awarts", "cursor", "ai", "usage", "model-context-protocol"]
+}

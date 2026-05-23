@@ -179,7 +179,7 @@ export const updateMe = mutation({
     if (args.timezone !== undefined) updates.timezone = args.timezone.trim().slice(0, 50);
     if (args.isPublic !== undefined) updates.isPublic = args.isPublic;
     if (args.defaultAiProvider !== undefined) {
-      const validProviders = ["claude", "codex", "gemini", "antigravity"];
+      const validProviders = ["claude", "codex", "gemini", "antigravity", "cursor"];
       if (validProviders.includes(args.defaultAiProvider)) {
         updates.defaultAiProvider = args.defaultAiProvider;
       }

@@ -60,6 +60,7 @@ awarts daemon start
 | **Codex** | Auto-detected | `~/.codex/usage/` |
 | **Gemini** | Auto-detected | `~/.gemini/usage/` |
 | **Antigravity** | Auto-detected | `~/.antigravity/usage/` |
+| **Cursor** | Auto-detected | `~/.awarts/cursor-usage.json` or Cursor CSV export |
 
 ### Using Pro subscriptions (no API keys)?
 

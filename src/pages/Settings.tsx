@@ -26,8 +26,10 @@ import {
   AlertCircle, 
   Target, 
   Check, 
-  Copy 
+  Copy,
+  Key,
 } from 'lucide-react';
+import { ApiKeysPanel } from '@/components/ApiKeysPanel';
 
 export default function Settings() {
   return (
@@ -63,7 +65,7 @@ interface ImportEntry {
 function parseImportFile(content: string, filename: string): { entries: ImportEntry[]; errors: string[] } {
   const errors: string[] = [];
   const entries: ImportEntry[] = [];
-  const validProviders = ['claude', 'codex', 'gemini', 'antigravity'];
+  const validProviders = ['claude', 'codex', 'gemini', 'antigravity', 'cursor'];
   const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
   try {
@@ -288,6 +290,7 @@ function SettingsContent() {
             <TabsTrigger value="privacy">Privacy</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="import">Import</TabsTrigger>
+            <TabsTrigger value="api">API & MCP</TabsTrigger>
             <TabsTrigger value="extension">Extension</TabsTrigger>
             <TabsTrigger value="account">Account</TabsTrigger>
           </TabsList>
@@ -646,6 +649,10 @@ function SettingsContent() {
             </div>
           </TabsContent>
 
+          <TabsContent value="api" className="mt-6">
+            <ApiKeysPanel />
+          </TabsContent>
+
           <TabsContent value="extension" className="space-y-6 mt-6">
             <div className="space-y-2">
               <h3 className="text-lg font-bold text-foreground">AWARTS Claude Counter</h3>
@@ -686,6 +693,24 @@ function SettingsContent() {
                   Once installed, refresh Claude.ai and the AWARTS counter will appear automatically.
                 </p>
               </div>
+            </div>
+
+            <div className="rounded-xl border border-border p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-cursor/20 flex items-center justify-center text-cursor">
+                  <Key className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="font-bold text-foreground">Cursor usage sync</p>
+                  <p className="text-xs text-muted-foreground">Extension + CLI + MCP</p>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Load the AWARTS Cursor helper from{' '}
+                <code className="text-xs bg-muted px-1 rounded">extensions/awarts-cursor-counter</code>, set your API key in the popup, and sync from cursor.com/settings. Or run{' '}
+                <code className="text-xs bg-muted px-1 rounded">npx awarts sync</code> after placing usage at{' '}
+                <code className="text-xs bg-muted px-1 rounded">~/.awarts/cursor-usage.json</code>.
+              </p>
             </div>
           </TabsContent>
 

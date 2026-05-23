@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>AWARTS Cursor</title>
+    <style>
+      body { font-family: system-ui, sans-serif; width: 320px; margin: 0; padding: 12px; }
+      label { font-size: 12px; color: #555; display: block; margin-bottom: 4px; }
+      input { width: 100%; box-sizing: border-box; padding: 8px; margin-bottom: 8px; font-size: 12px; }
+      button { width: 100%; padding: 10px; background: #e87a35; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+      button:disabled { opacity: 0.5; }
+      #status { font-size: 11px; margin-top: 8px; color: #333; }
+      a { font-size: 11px; color: #e87a35; }
+    </style>
+  </head>
+  <body>
+    <h1 style="font-size: 16px; margin: 0 0 8px">AWARTS × Cursor</h1>
+    <p style="font-size: 12px; color: #666; margin: 0 0 12px">
+      Create an API key at <a href="https://awarts.club/settings" target="_blank">awarts.club/settings</a>
+    </p>
+    <label for="apiKey">API key (aw_live_…)</label>
+    <input id="apiKey" type="password" placeholder="aw_live_..." autocomplete="off" />
+    <button id="save">Save & sync now</button>
+    <p id="status"></p>
+    <script src="popup.js"></script>
+  </body>
+</html>

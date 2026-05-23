@@ -34,7 +34,7 @@ export async function pushCommand(opts: PushOptions): Promise<void> {
 
   // ── Validate --provider flag ──────────────────────────────────────────
   if (opts.provider && !VALID_PROVIDERS.has(opts.provider)) {
-    out.error(`Unknown provider "${opts.provider}". Valid: claude, codex, gemini, antigravity`);
+    out.error(`Unknown provider "${opts.provider}". Valid: claude, codex, gemini, antigravity, cursor`);
     return;
   }
 

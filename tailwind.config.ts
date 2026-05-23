@@ -65,6 +65,7 @@ export default {
         codex: "hsl(var(--codex))",
         gemini: "hsl(var(--gemini))",
         antigravity: "hsl(var(--antigravity))",
+        cursor: "hsl(var(--cursor))",
 
         gold: "hsl(var(--gold))",
         silver: "hsl(var(--silver))",

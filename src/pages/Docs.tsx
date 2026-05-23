@@ -348,6 +348,27 @@ EOF`}</CodeBlock>
           </div>
         </div>
 
+        <div className="my-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className={cn('h-3 w-3 rounded-full', PROVIDERS.cursor.dotClass)} />
+            <h3 className="text-lg font-semibold text-foreground">Cursor</h3>
+          </div>
+          <Para>
+            Reads from <code className="font-mono bg-muted px-1 rounded text-foreground">~/.awarts/cursor-usage.json</code>, Cursor usage CSV exports, or the AWARTS Cursor extension. Agent/model metadata is stored in <code className="font-mono bg-muted px-1 rounded text-foreground">raw_data</code> for the Counter dashboard.
+          </Para>
+          <CodeBlock title="cursor-usage.json">{`{
+  "daily": [{
+    "date": "2026-05-23",
+    "input_tokens": 12000,
+    "output_tokens": 8000,
+    "cost_usd": 2.40,
+    "models": ["claude-sonnet-4", "cursor-small"],
+    "agents": { "composer": 5, "chat": 12 },
+    "subscription": "pro"
+  }]
+}`}</CodeBlock>
+        </div>
+
         <Heading3>Can't find local files? Use Settings → Import</Heading3>
         <Para>
           If your provider doesn't create local usage files (e.g., you only use it via web), you can always import sessions manually from the <strong>Settings → Import</strong> tab. Supported formats:
@@ -549,6 +570,54 @@ EOF`}</CodeBlock>
     ),
   },
   {
+    id: 'rest-api',
+    title: 'REST API & MCP',
+    icon: Code2,
+    keywords: 'api rest mcp model context protocol api key bearer usage leaderboard open stats v1',
+    content: (
+      <>
+        <Heading3>REST API (v1)</Heading3>
+        <Para>
+          Public HTTP endpoints on the AWARTS backend. Authenticated routes accept{' '}
+          <code className="font-mono bg-muted px-1 rounded text-foreground">Authorization: Bearer aw_live_…</code>{' '}
+          (API keys from Settings) or your CLI JWT from <code className="font-mono bg-muted px-1 rounded text-foreground">awarts login</code>.
+        </Para>
+        <TableWrapper
+          headers={['Method', 'Path', 'Auth', 'Description']}
+          rows={[
+            ['GET', '/api/v1/open-stats', 'No', 'Global platform aggregates'],
+            ['GET', '/api/v1/users/:username', 'Optional', 'Public profile + stats'],
+            ['GET', '/api/v1/users/:username/usage', 'Optional', 'Daily usage rows'],
+            ['GET', '/api/v1/me', 'Yes', 'Your profile + stats'],
+            ['GET', '/api/v1/leaderboard', 'No', 'Leaderboard (?period=&provider=)'],
+            ['POST', '/api/v1/usage', 'Yes', 'Submit usage entries'],
+            ['GET', '/api/v1/mcp/logs', 'Yes', 'MCP tool call audit log'],
+            ['POST', '/api/v1/mcp/log', 'Yes', 'Log an MCP tool invocation'],
+          ]}
+        />
+        <CodeBlock title="Submit usage">{`curl -X POST https://honorable-bee-242.convex.site/api/v1/usage \\
+  -H "Authorization: Bearer aw_live_YOUR_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"source":"api","entries":[{"date":"2026-05-23","provider":"cursor","cost_usd":1.2,"input_tokens":5000,"output_tokens":3000,"models":["claude-sonnet-4"]}]}'`}</CodeBlock>
+
+        <Heading3>MCP Server (@awarts/mcp)</Heading3>
+        <Para>
+          Install the official Model Context Protocol server in Cursor, Claude Desktop, or any MCP client:
+        </Para>
+        <CodeBlock title="MCP client config">{`{
+  "mcpServers": {
+    "awarts": {
+      "command": "npx",
+      "args": ["-y", "@awarts/mcp@latest"],
+      "env": { "AWARTS_API_KEY": "aw_live_YOUR_KEY" }
+    }
+  }
+}`}</CodeBlock>
+        <Para>Tools: <code className="font-mono text-xs">awarts_get_my_stats</code>, <code className="font-mono text-xs">awarts_get_user</code>, <code className="font-mono text-xs">awarts_submit_usage</code>, <code className="font-mono text-xs">awarts_get_leaderboard</code>, <code className="font-mono text-xs">awarts_get_mcp_logs</code>, and more.</Para>
+      </>
+    ),
+  },
+  {
     id: 'scorecard-embed',
     title: 'Scorecard Embed',
     icon: Code2,
@@ -614,7 +683,7 @@ EOF`}</CodeBlock>
         <TableWrapper
           headers={['Flag', 'Description', 'Default']}
           rows={[
-            ['--provider, -p', 'Filter by provider (claude, codex, gemini, antigravity)', 'all'],
+            ['--provider, -p', 'Filter by provider (claude, codex, gemini, antigravity, cursor)', 'all'],
             ['--format, -f', 'Output format for export (json, csv)', 'json'],
             ['--since', 'Only sync sessions after this date', '(last sync)'],
             ['--dry-run', 'Preview what would be synced without posting', 'false'],

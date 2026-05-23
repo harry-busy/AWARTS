@@ -10,6 +10,7 @@ const BADGE_DEFS: Record<string, { name: string; emoji: string; description: str
   codex_specialist: { name: "Codex Specialist", emoji: "\uD83D\uDC9A", description: "80%+ usage on Codex", category: "provider" },
   gemini_specialist: { name: "Gemini Specialist", emoji: "\uD83D\uDC99", description: "80%+ usage on Gemini", category: "provider" },
   antigravity_specialist: { name: "Antigravity Specialist", emoji: "\uD83D\uDC9C", description: "80%+ usage on Antigravity", category: "provider" },
+  cursor_specialist: { name: "Cursor Specialist", emoji: "\u26A1", description: "80%+ usage on Cursor", category: "provider" },
   social_butterfly: { name: "Social Butterfly", emoji: "\uD83E\uDD8B", description: "Follow 20+ users", category: "social" },
   popular: { name: "Popular", emoji: "\u2B50", description: "Gained 50+ followers", category: "social" },
   commentator: { name: "Commentator", emoji: "\uD83D\uDCAC", description: "Left 50+ comments", category: "social" },

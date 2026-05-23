@@ -3,7 +3,7 @@
  */
 
 // ── Provider keys ──────────────────────────────────────────────────────
-export type ProviderKey = 'claude' | 'codex' | 'gemini' | 'antigravity';
+export type ProviderKey = 'claude' | 'codex' | 'gemini' | 'antigravity' | 'cursor';
 
 // ── Usage entry -- the universal shape sent to the backend ─────────────
 export interface UsageEntry {
@@ -16,6 +16,7 @@ export interface UsageEntry {
   cache_read_tokens?: number;
   models: string[];
   cost_source?: 'real' | 'estimated';
+  raw_data?: string;
 }
 
 // ── Adapter contract ───────────────────────────────────────────────────
@@ -46,7 +47,7 @@ export interface PollResponse {
 
 export interface SubmitRequest {
   entries: UsageEntry[];
-  source: 'cli' | 'web';
+  source: 'cli' | 'web' | 'api' | 'mcp';
   hash?: string;
   note?: string;
 }

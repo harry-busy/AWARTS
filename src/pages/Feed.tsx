@@ -14,7 +14,7 @@ import { Link } from 'react-router-dom';
 import { SEO } from '@/components/SEO';
 
 const tabs = ['Following', 'Global', 'My Sessions'] as const;
-const providers: (Provider | 'all')[] = ['all', 'claude', 'codex', 'gemini', 'antigravity'];
+const providers: (Provider | 'all')[] = ['all', 'claude', 'codex', 'gemini', 'antigravity', 'cursor'];
 
 export default function Feed() {
   const { user } = useAuth();

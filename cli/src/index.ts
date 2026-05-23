@@ -71,7 +71,7 @@ program
 program
   .command('push')
   .description('Read local usage data and submit to AWARTS')
-  .option('-p, --provider <name>', 'Only push data from a specific provider (claude, codex, gemini, antigravity)')
+  .option('-p, --provider <name>', 'Only push data from a specific provider (claude, codex, gemini, antigravity, cursor)')
   .option('-n, --dry-run', 'Show what would be pushed without submitting')
   .option('--note <text>', 'Attach a note/description to today\'s post')
   .action(async (opts: { provider?: string; dryRun?: boolean; note?: string }) => {

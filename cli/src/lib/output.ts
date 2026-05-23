@@ -14,6 +14,7 @@ const providerColors: Record<string, (t: string) => string> = {
   codex: chalk.hex('#22C55E'),
   gemini: chalk.hex('#3B82F6'),
   antigravity: chalk.hex('#A855F7'),
+  cursor: chalk.hex('#06B6D4'),
 };
 
 export function providerLabel(provider: string): string {

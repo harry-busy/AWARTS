@@ -47,6 +47,15 @@ export const PROVIDERS: Record<Provider, ProviderConfig> = {
     textClass: 'text-antigravity',
     dotClass: 'bg-antigravity',
   },
+  cursor: {
+    id: 'cursor',
+    name: 'Cursor',
+    color: '#06B6D4',
+    hslVar: 'var(--cursor)',
+    bgClass: 'bg-cursor/10',
+    textClass: 'text-cursor',
+    dotClass: 'bg-cursor',
+  },
 };
 
 export const ACHIEVEMENTS: Achievement[] = [
@@ -58,7 +67,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'big-spender-100', name: 'Big Spender', emoji: '💸', description: 'Spend $100 total', earned: false },
   { id: 'big-spender-1000', name: 'Whale', emoji: '🐳', description: 'Spend $1000 total', earned: false },
   { id: 'multi-provider', name: 'Polyglot Coder', emoji: '🌐', description: 'Use 2+ providers', earned: false },
-  { id: 'all-providers', name: 'Full Stack AI', emoji: '🤖', description: 'Use all 4 providers', earned: false },
+  { id: 'all-providers', name: 'Full Stack AI', emoji: '🤖', description: 'Use all 5 providers', earned: false },
 ];
 
 export const COUNTRIES = [

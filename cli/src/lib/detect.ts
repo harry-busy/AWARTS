@@ -10,12 +10,14 @@ import { claudeAdapter } from '../adapters/claude.js';
 import { codexAdapter } from '../adapters/codex.js';
 import { geminiAdapter } from '../adapters/gemini.js';
 import { antigravityAdapter } from '../adapters/antigravity.js';
+import { cursorAdapter } from '../adapters/cursor.js';
 
 export const ALL_ADAPTERS: Adapter[] = [
   claudeAdapter,
   codexAdapter,
   geminiAdapter,
   antigravityAdapter,
+  cursorAdapter,
 ];
 
 export interface DetectionResult {
