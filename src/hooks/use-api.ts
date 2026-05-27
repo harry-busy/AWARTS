@@ -704,7 +704,14 @@ export function useRevokeApiKey() {
 // ─── Cursor analytics ─────────────────────────────────────────────────
 
 export function useCursorDetails(skip = false) {
-  const result = useQuery(api.analyticsCursor.getCursorDetails, skip ? "skip" : {});
+  let result: ReturnType<typeof useQuery<typeof api.analyticsCursor.getCursorDetails>> | undefined;
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    result = useQuery(api.analyticsCursor.getCursorDetails, skip ? "skip" : {});
+  } catch {
+    // If the backend function is unavailable (not deployed yet, schema mismatch, etc.), fail silently
+    result = null;
+  }
   return {
     data: result ?? null,
     isLoading: result === undefined && !skip,

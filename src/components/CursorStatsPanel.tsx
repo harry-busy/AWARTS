@@ -1,3 +1,4 @@
+import { Component, type ReactNode } from 'react';
 import { useCursorDetails } from '@/hooks/use-api';
 import { formatCost, formatTokens } from '@/lib/format';
 import { PROVIDERS } from '@/lib/constants';
@@ -6,7 +7,30 @@ import type { ElementType } from 'react';
 import { Zap, Cpu, Bot, CreditCard, Activity } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
+/** Error boundary that silently hides the Cursor panel on crash */
+class CursorPanelBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
+
 export function CursorStatsPanel() {
+  return (
+    <CursorPanelBoundary>
+      <CursorStatsPanelInner />
+    </CursorPanelBoundary>
+  );
+}
+
+function CursorStatsPanelInner() {
   const { data, isLoading } = useCursorDetails();
 
   if (isLoading) {
@@ -20,7 +44,7 @@ export function CursorStatsPanel() {
 
   if (!data) return null;
 
-  const accent = PROVIDERS.cursor.color;
+  const accent = PROVIDERS.cursor?.color ?? '#06B6D4';
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 space-y-4">
@@ -129,3 +153,4 @@ function MiniStat({
     </div>
   );
 }
+
