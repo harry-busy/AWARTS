@@ -38,19 +38,27 @@ export default function Terms() {
             <li>Interfere with the Service's operation or security.</li>
           </ul>
 
-          <h2>5. Verified vs Unverified Data</h2>
+          <h2>5. AI Data Usage & Intellectual Property Policy</h2>
+          <p>To protect AWARTS' original intellectual property, visual designs, and database from copycats, clones, and unauthorized replication, the following strict terms apply to all Artificial Intelligence (AI) models, Large Language Models (LLMs), scrapers, crawlers, and automated indexers:</p>
+          <ul className="list-disc pl-6 space-y-1">
+            <li><strong>Allowed Real-Time Queries:</strong> AI models (including those developed by OpenAI, Anthropic, Google, Meta, Apple, and Perplexity) are permitted to fetch public real-time pages <em>solely</em> to answer user-initiated queries, search results, or real-time assistant commands.</li>
+            <li><strong>Strict Prohibition on Cloning & Mimicking:</strong> You are strictly prohibited from using AWARTS' visual layout, code structure, stylesheets, token-calculation algorithms, and core platform concepts to build, copy, train, or launch any competing, cloned, or highly derivative tracking platform.</li>
+            <li><strong>No Bulk Scraping or Training:</strong> Bulk scraping, structural harvesting, or utilization of AWARTS' database, code, or interface for training custom AI models is strictly prohibited without explicit written consent from the platform owners.</li>
+          </ul>
+
+          <h2>6. Verified vs Unverified Data</h2>
           <p>Sessions submitted via the CLI are marked as "Verified." Web-imported data is marked as "Unverified." Verified sessions receive priority in leaderboard rankings.</p>
 
-          <h2>6. Termination</h2>
+          <h2>7. Termination</h2>
           <p>We may suspend or terminate accounts that violate these terms. You may delete your account at any time through Settings.</p>
 
-          <h2>7. Disclaimer</h2>
+          <h2>8. Disclaimer</h2>
           <p>The Service is provided "as is" without warranty of any kind. We do not guarantee accuracy of cost estimates or token counts — these are derived from third-party provider data.</p>
 
-          <h2>8. Changes</h2>
+          <h2>9. Changes</h2>
           <p>We may update these terms. Continued use after changes constitutes acceptance.</p>
 
-          <h2>9. Contact</h2>
+          <h2>10. Contact</h2>
           <p>Questions about these terms? Open an issue on <a href="https://github.com/HarshalJain-cs/AWARTS" className="text-primary hover:underline">GitHub</a>.</p>
         </div>
       </main>
