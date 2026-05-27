@@ -13,6 +13,7 @@ const PROVIDER_HSL: Record<Provider, string> = {
   codex: '142, 71%, 45%',
   gemini: '217, 91%, 60%',
   antigravity: '270, 91%, 65%',
+  cursor: '188, 94%, 43%',
 };
 
 const INTENSITY_OPACITY: Record<number, number> = {

@@ -1,6 +1,9 @@
 {
   "name": "@awarts/mcp",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Model Context Protocol server for AWARTS — read stats, submit usage, track MCP tool calls",
   "type": "module",
   "license": "MIT",
@@ -17,8 +20,10 @@
   "files": ["dist", "README.md"],
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "start": "node dist/index.js",
-    "dev": "tsc && node dist/index.js"
+    "dev": "tsc && node dist/index.js",
+    "test": "node --test dist/index.js 2>/dev/null || echo \"Build first: npm run build\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",

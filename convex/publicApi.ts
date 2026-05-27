@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, internalMutation } from "./_generated/server";
 import { requireBearerAuth, resolveBearerToken } from "./lib/apiAuth";
+import { authHasScope, scopeErrorMessage } from "./lib/apiScopes";
 import { isValidProvider } from "./lib/providers";
 
 function getPreviousDate(dateStr: string): string {
@@ -185,6 +186,9 @@ export const getAuthenticatedMe = query({
   args: { authToken: v.string() },
   handler: async (ctx, { authToken }) => {
     const auth = await requireBearerAuth(ctx, authToken);
+    if (auth.method === "api_key" && !authHasScope(auth, "read")) {
+      throw new Error(scopeErrorMessage("read"));
+    }
     const usageEntries = await ctx.db
       .query("daily_usage")
       .withIndex("by_user", (q) => q.eq("userId", auth.user._id))

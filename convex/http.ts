@@ -1,6 +1,7 @@
 import { httpRouter } from "convex/server";
 import { httpAction, type ActionCtx } from "./_generated/server";
 import { api, internal } from "./_generated/api";
+import { API_VERSION } from "./lib/apiConstants";
 
 const http = httpRouter();
 
@@ -52,12 +53,20 @@ function getClientIp(request: Request): string {
   return "unknown";
 }
 
+function apiHeaders(request?: Request, extra: Record<string, string> = {}): Record<string, string> {
+  return {
+    ...getCorsHeaders(request),
+    "X-API-Version": API_VERSION,
+    ...extra,
+  };
+}
+
 function jsonResponse(data: unknown, request?: Request, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: getCorsHeaders(request) });
+  return new Response(JSON.stringify(data), { status, headers: apiHeaders(request) });
 }
 
 function errorResponse(message: string, request?: Request, status = 400) {
-  return new Response(JSON.stringify({ error: message }), { status, headers: getCorsHeaders(request) });
+  return new Response(JSON.stringify({ error: message }), { status, headers: apiHeaders(request) });
 }
 
 function getBearerToken(request: Request): string | undefined {
@@ -67,15 +76,21 @@ function getBearerToken(request: Request): string | undefined {
   return token.length >= 10 ? token : undefined;
 }
 
+function rateLimitIdentity(request: Request): string {
+  const token = getBearerToken(request);
+  if (token?.startsWith("aw_live_")) return `key:${token.slice(0, 24)}`;
+  return `ip:${getClientIp(request)}`;
+}
+
 async function withApiRateLimit(
   ctx: ActionCtx,
   key: string,
   maxRequests: number,
   request?: Request,
 ): Promise<Response | null> {
-  const ip = getClientIp(request ?? new Request("http://localhost"));
+  const identity = request ? rateLimitIdentity(request) : "unknown";
   const rateCheck = await ctx.runMutation(internal.rateLimit.checkRateLimit, {
-    key: `${key}:${ip}`,
+    key: `${key}:${identity}`,
     maxRequests,
     windowMs: 60_000,
   });
@@ -87,6 +102,60 @@ async function withApiRateLimit(
     return new Response(JSON.stringify({ error: "Too many requests" }), { status: 429, headers });
   }
   return null;
+}
+
+type ScopeAuth = {
+  ok: true;
+  userId: import("./_generated/dataModel").Id<"users">;
+  apiKeyId?: import("./_generated/dataModel").Id<"api_keys">;
+};
+
+async function requireHttpScope(
+  ctx: ActionCtx,
+  request: Request,
+  token: string | undefined,
+  scope: "read" | "write" | "mcp",
+): Promise<{ auth?: ScopeAuth; error?: Response }> {
+  if (!token) {
+    return { error: errorResponse("Missing Authorization header", request, 401) };
+  }
+  const check = await ctx.runQuery(internal.httpAuth.verifyTokenScope, { token, scope });
+  if (!check.ok) {
+    return {
+      error: errorResponse(check.error ?? "Forbidden", request, check.status ?? 403),
+    };
+  }
+  return {
+    auth: {
+      ok: true,
+      userId: check.userId,
+      apiKeyId: check.apiKeyId,
+    },
+  };
+}
+
+async function auditRequest(
+  ctx: ActionCtx,
+  request: Request,
+  status: number,
+  startedAt: number,
+  auth?: ScopeAuth,
+  errMsg?: string,
+) {
+  try {
+    await ctx.runMutation(internal.httpAuth.logApiRequest, {
+      method: request.method,
+      path: new URL(request.url).pathname,
+      status,
+      userId: auth?.userId,
+      apiKeyId: auth?.apiKeyId,
+      ip: getClientIp(request),
+      durationMs: Date.now() - startedAt,
+      error: errMsg,
+    });
+  } catch {
+    // Non-fatal
+  }
 }
 
 // ─── CLI Auth: Init (rate-limited) ──────────────────────────────────
@@ -394,15 +463,33 @@ http.route({
 // ─── Public REST API v1 ───────────────────────────────────────────────
 
 http.route({
+  path: "/api/v1/health",
+  method: "GET",
+  handler: httpAction(async (_ctx, request) => {
+    return jsonResponse(
+      {
+        status: "ok",
+        version: API_VERSION,
+        timestamp: new Date().toISOString(),
+      },
+      request,
+    );
+  }),
+});
+
+http.route({
   path: "/api/v1/open-stats",
   method: "GET",
   handler: httpAction(async (ctx, request) => {
-    const limited = await withApiRateLimit(ctx, "v1_open_stats", 60, request);
+    const started = Date.now();
+    const limited = await withApiRateLimit(ctx, "v1_open_stats", 120, request);
     if (limited) return limited;
     try {
       const stats = await ctx.runQuery(api.openStats.getOpenStats, {});
+      await auditRequest(ctx, request, 200, started);
       return jsonResponse({ data: stats }, request);
     } catch {
+      await auditRequest(ctx, request, 500, started, undefined, "open_stats_failed");
       return errorResponse("Failed to load open stats", request, 500);
     }
   }),
@@ -412,7 +499,8 @@ http.route({
   pathPrefix: "/api/v1/users/",
   method: "GET",
   handler: httpAction(async (ctx, request) => {
-    const limited = await withApiRateLimit(ctx, "v1_users", 120, request);
+    const started = Date.now();
+    const limited = await withApiRateLimit(ctx, "v1_users", 180, request);
     if (limited) return limited;
 
     const url = new URL(request.url);
@@ -424,32 +512,50 @@ http.route({
     }
 
     const token = getBearerToken(request);
+    if (token) {
+      const scopeCheck = await requireHttpScope(ctx, request, token, "read");
+      if (scopeCheck.error) return scopeCheck.error;
+    }
 
-    if (parts[1] === "usage") {
-      const data = await ctx.runQuery(api.publicApi.getPublicUserUsage, {
+    try {
+      if (parts[1] === "usage") {
+        const data = await ctx.runQuery(api.publicApi.getPublicUserUsage, {
+          username,
+          from: url.searchParams.get("from") ?? undefined,
+          to: url.searchParams.get("to") ?? undefined,
+          provider: url.searchParams.get("provider") ?? undefined,
+          authToken: token,
+        });
+        if (!data) {
+          await auditRequest(ctx, request, 404, started);
+          return errorResponse("User not found", request, 404);
+        }
+        if ("error" in data && data.error === "private_profile") {
+          await auditRequest(ctx, request, 403, started);
+          return errorResponse("Profile is private", request, 403);
+        }
+        await auditRequest(ctx, request, 200, started);
+        return jsonResponse({ data }, request);
+      }
+
+      if (parts.length > 1) {
+        return errorResponse("Not found", request, 404);
+      }
+
+      const data = await ctx.runQuery(api.publicApi.getPublicUser, {
         username,
-        from: url.searchParams.get("from") ?? undefined,
-        to: url.searchParams.get("to") ?? undefined,
-        provider: url.searchParams.get("provider") ?? undefined,
         authToken: token,
       });
-      if (!data) return errorResponse("User not found", request, 404);
-      if ("error" in data && data.error === "private_profile") {
-        return errorResponse("Profile is private", request, 403);
+      if (!data) {
+        await auditRequest(ctx, request, 404, started);
+        return errorResponse("User not found", request, 404);
       }
+      await auditRequest(ctx, request, 200, started);
       return jsonResponse({ data }, request);
+    } catch (err: any) {
+      await auditRequest(ctx, request, 500, started, undefined, err.message);
+      return errorResponse("Request failed", request, 500);
     }
-
-    if (parts.length > 1) {
-      return errorResponse("Not found", request, 404);
-    }
-
-    const data = await ctx.runQuery(api.publicApi.getPublicUser, {
-      username,
-      authToken: token,
-    });
-    if (!data) return errorResponse("User not found", request, 404);
-    return jsonResponse({ data }, request);
   }),
 });
 
@@ -457,15 +563,24 @@ http.route({
   path: "/api/v1/me",
   method: "GET",
   handler: httpAction(async (ctx, request) => {
-    const limited = await withApiRateLimit(ctx, "v1_me", 60, request);
+    const started = Date.now();
+    const limited = await withApiRateLimit(ctx, "v1_me", 120, request);
     if (limited) return limited;
     const token = getBearerToken(request);
-    if (!token) return errorResponse("Missing Authorization header", request, 401);
+    const scopeCheck = await requireHttpScope(ctx, request, token, "read");
+    if (scopeCheck.error) return scopeCheck.error;
     try {
-      const data = await ctx.runQuery(api.publicApi.getAuthenticatedMe, { authToken: token });
+      const data = await ctx.runQuery(api.publicApi.getAuthenticatedMe, { authToken: token! });
+      await auditRequest(ctx, request, 200, started, scopeCheck.auth);
       return jsonResponse({ data }, request);
-    } catch {
-      return errorResponse("Authentication failed", request, 401);
+    } catch (err: any) {
+      const status = err.message?.includes("scope") ? 403 : 401;
+      await auditRequest(ctx, request, status, started, scopeCheck.auth, err.message);
+      return errorResponse(
+        status === 403 ? err.message : "Authentication failed",
+        request,
+        status,
+      );
     }
   }),
 });
@@ -474,7 +589,8 @@ http.route({
   path: "/api/v1/leaderboard",
   method: "GET",
   handler: httpAction(async (ctx, request) => {
-    const limited = await withApiRateLimit(ctx, "v1_leaderboard", 60, request);
+    const started = Date.now();
+    const limited = await withApiRateLimit(ctx, "v1_leaderboard", 120, request);
     if (limited) return limited;
     const url = new URL(request.url);
     const data = await ctx.runQuery(api.publicApi.getPublicLeaderboard, {
@@ -482,6 +598,7 @@ http.route({
       provider: url.searchParams.get("provider") ?? undefined,
       limit: url.searchParams.get("limit") ? Number(url.searchParams.get("limit")) : undefined,
     });
+    await auditRequest(ctx, request, 200, started);
     return jsonResponse({ data }, request);
   }),
 });
@@ -490,14 +607,13 @@ http.route({
   path: "/api/v1/usage",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
-    if (!validateOrigin(request)) {
-      return errorResponse("Forbidden", request, 403);
-    }
-    const limited = await withApiRateLimit(ctx, "v1_usage_submit", 30, request);
+    const started = Date.now();
+    const limited = await withApiRateLimit(ctx, "v1_usage_submit", 60, request);
     if (limited) return limited;
 
     const token = getBearerToken(request);
-    if (!token) return errorResponse("Missing Authorization header", request, 401);
+    const scopeCheck = await requireHttpScope(ctx, request, token, "write");
+    if (scopeCheck.error) return scopeCheck.error;
 
     let body: any;
     try {
@@ -520,13 +636,23 @@ http.route({
         entries: body.entries,
         source,
         hash: body.hash,
-        authToken: token,
+        authToken: token!,
         note: typeof body.note === "string" ? body.note.slice(0, 2000) : undefined,
       });
+      await auditRequest(ctx, request, 200, started, scopeCheck.auth);
       return jsonResponse({ data: result }, request);
     } catch (err: any) {
-      const isAuth = err.message?.includes("Not authenticated") || err.message?.includes("Token expired");
-      return errorResponse(isAuth ? "Authentication failed" : "Usage submission failed", request, isAuth ? 401 : 400);
+      const isAuth =
+        err.message?.includes("Not authenticated") ||
+        err.message?.includes("Token expired") ||
+        err.message?.includes("scope");
+      const status = err.message?.includes("scope") ? 403 : isAuth ? 401 : 400;
+      await auditRequest(ctx, request, status, started, scopeCheck.auth, err.message);
+      return errorResponse(
+        isAuth || status === 403 ? err.message : "Usage submission failed",
+        request,
+        status,
+      );
     }
   }),
 });
@@ -535,10 +661,12 @@ http.route({
   path: "/api/v1/mcp/log",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
-    const limited = await withApiRateLimit(ctx, "v1_mcp_log", 120, request);
+    const started = Date.now();
+    const limited = await withApiRateLimit(ctx, "v1_mcp_log", 180, request);
     if (limited) return limited;
     const token = getBearerToken(request);
-    if (!token) return errorResponse("Missing Authorization header", request, 401);
+    const scopeCheck = await requireHttpScope(ctx, request, token, "mcp");
+    if (scopeCheck.error) return scopeCheck.error;
 
     let body: any;
     try {
@@ -552,7 +680,7 @@ http.route({
 
     try {
       const result = await ctx.runMutation(api.mcpUsage.logToolCall, {
-        authToken: token,
+        authToken: token!,
         toolName: body.tool_name,
         success: body.success !== false,
         durationMs: typeof body.duration_ms === "number" ? body.duration_ms : undefined,
@@ -560,9 +688,12 @@ http.route({
         metadata: typeof body.metadata === "string" ? body.metadata : undefined,
         source: body.source ?? "mcp",
       });
+      await auditRequest(ctx, request, 200, started, scopeCheck.auth);
       return jsonResponse({ data: result }, request);
-    } catch {
-      return errorResponse("Authentication failed", request, 401);
+    } catch (err: any) {
+      const status = err.message?.includes("scope") ? 403 : 401;
+      await auditRequest(ctx, request, status, started, scopeCheck.auth, err.message);
+      return errorResponse(err.message ?? "Authentication failed", request, status);
     }
   }),
 });
@@ -571,19 +702,24 @@ http.route({
   path: "/api/v1/mcp/logs",
   method: "GET",
   handler: httpAction(async (ctx, request) => {
-    const limited = await withApiRateLimit(ctx, "v1_mcp_logs", 60, request);
+    const started = Date.now();
+    const limited = await withApiRateLimit(ctx, "v1_mcp_logs", 120, request);
     if (limited) return limited;
     const token = getBearerToken(request);
-    if (!token) return errorResponse("Missing Authorization header", request, 401);
+    const scopeCheck = await requireHttpScope(ctx, request, token, "read");
+    if (scopeCheck.error) return scopeCheck.error;
     const url = new URL(request.url);
     try {
       const data = await ctx.runQuery(api.mcpUsage.getMyLogs, {
-        authToken: token,
+        authToken: token!,
         limit: url.searchParams.get("limit") ? Number(url.searchParams.get("limit")) : undefined,
       });
+      await auditRequest(ctx, request, 200, started, scopeCheck.auth);
       return jsonResponse({ data }, request);
-    } catch {
-      return errorResponse("Authentication failed", request, 401);
+    } catch (err: any) {
+      const status = err.message?.includes("scope") ? 403 : 401;
+      await auditRequest(ctx, request, status, started, scopeCheck.auth, err.message);
+      return errorResponse(err.message ?? "Authentication failed", request, status);
     }
   }),
 });
@@ -594,6 +730,7 @@ http.route({ path: "/api/auth/cli/poll", method: "OPTIONS", handler: preflightHa
 http.route({ path: "/api/usage/submit", method: "OPTIONS", handler: preflightHandler });
 http.route({ path: "/api/usage/cleanup", method: "OPTIONS", handler: preflightHandler });
 http.route({ path: "/api/embed", method: "OPTIONS", handler: preflightHandler });
+http.route({ path: "/api/v1/health", method: "OPTIONS", handler: preflightHandler });
 http.route({ path: "/api/v1/open-stats", method: "OPTIONS", handler: preflightHandler });
 http.route({ path: "/api/v1/me", method: "OPTIONS", handler: preflightHandler });
 http.route({ path: "/api/v1/leaderboard", method: "OPTIONS", handler: preflightHandler });

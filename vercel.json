@@ -55,6 +55,10 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://artful-bullfrog-640.convex.site/api/:path*"
+    },
     { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
     { "source": "/robots.txt", "destination": "/robots.txt" },
     { "source": "/sw.js", "destination": "/sw.js" },

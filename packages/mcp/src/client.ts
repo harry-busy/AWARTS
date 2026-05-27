@@ -1,4 +1,4 @@
-const DEFAULT_API_URL = "https://honorable-bee-242.convex.site";
+const DEFAULT_API_URL = "https://awarts.club";
 
 export function getApiBase(): string {
   return (process.env.AWARTS_API_URL ?? DEFAULT_API_URL).replace(/\/+$/, "");

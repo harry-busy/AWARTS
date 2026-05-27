@@ -119,7 +119,7 @@ server.tool(
   {},
   async () => {
     return withLogging("awarts_get_open_stats", async () => {
-      const res = await fetch(`${process.env.AWARTS_API_URL?.replace(/\/+$/, "") ?? "https://honorable-bee-242.convex.site"}/api/v1/open-stats`);
+      const res = await fetch(`${process.env.AWARTS_API_URL?.replace(/\/+$/, "") ?? "https://awarts.club"}/api/v1/open-stats`);
       const json = (await res.json()) as { data: unknown };
       return {
         content: [{ type: "text", text: JSON.stringify(json.data, null, 2) }],

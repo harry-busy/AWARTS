@@ -224,6 +224,18 @@ export default defineSchema({
   })
     .index("by_user_time", ["userId"]),
 
+  api_audit_logs: defineTable({
+    method: v.string(),
+    path: v.string(),
+    status: v.number(),
+    userId: v.optional(v.id("users")),
+    apiKeyId: v.optional(v.id("api_keys")),
+    ip: v.optional(v.string()),
+    durationMs: v.optional(v.number()),
+    error: v.optional(v.string()),
+  })
+    .index("by_path", ["path"]),
+
   token_rich_companies: defineTable({
     name: v.string(),
     url: v.string(),

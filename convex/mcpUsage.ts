@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireBearerAuth } from "./lib/apiAuth";
+import { authHasScope, scopeErrorMessage } from "./lib/apiScopes";
 
 export const logToolCall = mutation({
   args: {
@@ -14,6 +15,9 @@ export const logToolCall = mutation({
   },
   handler: async (ctx, args) => {
     const auth = await requireBearerAuth(ctx, args.authToken);
+    if (auth.method === "api_key" && !authHasScope(auth, "mcp")) {
+      throw new Error(scopeErrorMessage("mcp"));
+    }
 
     if (auth.apiKeyId) {
       await ctx.db.patch(auth.apiKeyId, { lastUsedAt: Date.now() });
@@ -41,6 +45,9 @@ export const getMyLogs = query({
   },
   handler: async (ctx, { authToken, limit }) => {
     const auth = await requireBearerAuth(ctx, authToken);
+    if (auth.method === "api_key" && !authHasScope(auth, "read")) {
+      throw new Error(scopeErrorMessage("read"));
+    }
     const safeLimit = Math.min(Math.max(1, limit ?? 50), 200);
 
     const logs = await ctx.db

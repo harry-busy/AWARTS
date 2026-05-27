@@ -4,6 +4,7 @@ import { getCurrentUser } from "./users";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { resolveBearerToken } from "./lib/apiAuth";
+import { authHasScope, scopeErrorMessage } from "./lib/apiScopes";
 import { isValidProvider, ALL_PROVIDERS_COUNT } from "./lib/providers";
 
 const usageEntryValidator = v.object({
@@ -52,6 +53,9 @@ export const submitUsage = mutation({
     if (!me && authToken) {
       const resolved = await resolveBearerToken(ctx, authToken);
       if (resolved) {
+        if (resolved.method === "api_key" && !authHasScope(resolved, "write")) {
+          throw new Error(scopeErrorMessage("write"));
+        }
         me = resolved.user;
         if (resolved.apiKeyId) {
           await ctx.db.patch(resolved.apiKeyId, { lastUsedAt: Date.now() });

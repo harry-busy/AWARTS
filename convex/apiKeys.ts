@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser } from "./users";
 import { generateApiKey, hashKey } from "./lib/apiAuth";
+import { DEFAULT_API_KEY_SCOPES } from "./lib/apiScopes";
 
 export const listMyKeys = query({
   args: {},
@@ -39,6 +40,14 @@ export const createKey = mutation({
     const trimmed = name.trim().slice(0, 64);
     if (!trimmed) throw new Error("Name is required");
 
+    const allowedScopes = new Set(["read", "write", "mcp", "admin"]);
+    const finalScopes = (scopes ?? [...DEFAULT_API_KEY_SCOPES]).filter((s) =>
+      allowedScopes.has(s),
+    );
+    if (finalScopes.length === 0) {
+      throw new Error("At least one valid scope required: read, write, mcp");
+    }
+
     const existing = await ctx.db
       .query("api_keys")
       .withIndex("by_user", (q) => q.eq("userId", me._id))
@@ -56,7 +65,7 @@ export const createKey = mutation({
       name: trimmed,
       keyHash,
       keyPrefix: prefix,
-      scopes: scopes ?? ["read", "write"],
+      scopes: finalScopes,
     });
 
     return {

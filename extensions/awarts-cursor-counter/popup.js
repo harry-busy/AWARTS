@@ -1,4 +1,4 @@
-const API_BASE = 'https://honorable-bee-242.convex.site';
+const API_BASE = 'https://awarts.club';
 
 document.getElementById('save').addEventListener('click', async () => {
   const key = document.getElementById('apiKey').value.trim();

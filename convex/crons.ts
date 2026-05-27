@@ -9,4 +9,7 @@ crons.weekly("weekly email digest", { dayOfWeek: "monday", hourUTC: 9, minuteUTC
 // Hourly cleanup of expired rate limit entries
 crons.hourly("rate limit cleanup", { minuteUTC: 15 }, internal.rateLimit.cleanupOldEntries);
 
+// Daily API audit log retention (30 days)
+crons.daily("api audit cleanup", { hourUTC: 4, minuteUTC: 0 }, internal.httpAuth.cleanupAuditLogs);
+
 export default crons;

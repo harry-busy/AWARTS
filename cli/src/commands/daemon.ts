@@ -13,7 +13,7 @@ import chalk from 'chalk';
 import { loadAuth } from '../lib/auth-store.js';
 import { syncCommand } from './sync.js';
 import * as out from '../lib/output.js';
-// removed unused import
+import {
   readPid,
   removePid,
   isProcessRunning,

@@ -5,7 +5,6 @@
   "description": "Sync Cursor IDE token usage and agent stats to AWARTS.",
   "permissions": ["storage", "alarms"],
   "host_permissions": [
-    "https://honorable-bee-242.convex.site/*",
     "https://awarts.club/*",
     "https://www.cursor.com/*",
     "https://cursor.com/*"

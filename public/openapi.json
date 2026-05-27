@@ -1,0 +1,105 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AWARTS API",
+    "version": "1.0.0",
+    "description": "REST API for AI coding usage tracking. Base URL: https://awarts.club/api/v1"
+  },
+  "servers": [{ "url": "https://awarts.club/api/v1" }],
+  "security": [{ "bearerAuth": [] }],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key (aw_live_...) or CLI JWT from awarts login"
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "security": [],
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/open-stats": {
+      "get": {
+        "summary": "Global platform statistics",
+        "security": [],
+        "responses": { "200": { "description": "Aggregates" } }
+      }
+    },
+    "/me": {
+      "get": {
+        "summary": "Authenticated user profile and stats",
+        "responses": { "200": { "description": "Profile" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/users/{username}": {
+      "get": {
+        "summary": "Public user profile",
+        "parameters": [{ "name": "username", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Profile" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/users/{username}/usage": {
+      "get": {
+        "summary": "User daily usage entries",
+        "parameters": [
+          { "name": "username", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "from", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "to", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "provider", "in": "query", "schema": { "type": "string", "enum": ["claude", "codex", "gemini", "antigravity", "cursor"] } }
+        ],
+        "responses": { "200": { "description": "Usage rows" } }
+      }
+    },
+    "/leaderboard": {
+      "get": {
+        "summary": "Spend leaderboard",
+        "security": [],
+        "parameters": [
+          { "name": "period", "in": "query", "schema": { "type": "string", "enum": ["daily", "weekly", "monthly", "all_time"] } },
+          { "name": "provider", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "maximum": 100 } }
+        ],
+        "responses": { "200": { "description": "Ranked list" } }
+      }
+    },
+    "/usage": {
+      "post": {
+        "summary": "Submit usage entries",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["entries"],
+                "properties": {
+                  "source": { "type": "string", "enum": ["cli", "web", "api", "mcp"] },
+                  "entries": { "type": "array", "maxItems": 500 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Processed" }, "401": { "description": "Unauthorized" }, "403": { "description": "Missing write scope" } }
+      }
+    },
+    "/mcp/logs": {
+      "get": {
+        "summary": "MCP tool call audit log",
+        "responses": { "200": { "description": "Logs" } }
+      }
+    },
+    "/mcp/log": {
+      "post": {
+        "summary": "Record an MCP tool invocation",
+        "responses": { "200": { "description": "Logged" } }
+      }
+    }
+  }
+}

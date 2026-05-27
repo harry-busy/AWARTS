@@ -89,6 +89,33 @@ jobs:
           awarts --version
           npm unlink awarts
 
+  mcp-test:
+    name: MCP Package - Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install and build MCP
+        working-directory: ./packages/mcp
+        run: |
+          npm ci
+          npm run build
+
+  api-smoke:
+    name: API Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Smoke test production API
+        run: node scripts/smoke-api.mjs
+        env:
+          AWARTS_API_BASE: https://artful-bullfrog-640.convex.site
+
   # Security checks
   security-scan:
     name: Security Scan

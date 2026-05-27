@@ -1,6 +1,6 @@
 {
   "name": "awarts",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "Track your AI coding across Claude, Codex, Gemini, Antigravity & Cursor",
   "type": "module",
   "license": "MIT",

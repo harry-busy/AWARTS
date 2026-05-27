@@ -595,10 +595,14 @@ EOF`}</CodeBlock>
             ['POST', '/api/v1/mcp/log', 'Yes', 'Log an MCP tool invocation'],
           ]}
         />
-        <CodeBlock title="Submit usage">{`curl -X POST https://honorable-bee-242.convex.site/api/v1/usage \\
+        <CodeBlock title="Health check">{`curl https://awarts.club/api/v1/health`}</CodeBlock>
+        <CodeBlock title="Submit usage">{`curl -X POST https://awarts.club/api/v1/usage \\
   -H "Authorization: Bearer aw_live_YOUR_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"source":"api","entries":[{"date":"2026-05-23","provider":"cursor","cost_usd":1.2,"input_tokens":5000,"output_tokens":3000,"models":["claude-sonnet-4"]}]}'`}</CodeBlock>
+        <Para>
+          OpenAPI spec: <a href="/openapi.json" className="text-primary hover:underline">/openapi.json</a>
+        </Para>
 
         <Heading3>MCP Server (@awarts/mcp)</Heading3>
         <Para>

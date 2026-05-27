@@ -52,6 +52,15 @@ async function dirExists(p: string): Promise<boolean> {
   }
 }
 
+async function pathExists(p: string): Promise<boolean> {
+  try {
+    await fs.access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function fileExists(p: string): Promise<boolean> {
   try {
     await fs.access(p);
@@ -333,6 +342,40 @@ async function checkGemini(): Promise<Check> {
   };
 }
 
+async function checkCursor(): Promise<Check> {
+  const home = os.homedir();
+  const paths = [
+    path.join(home, '.awarts', 'cursor-usage.json'),
+    path.join(home, '.cursor', 'awarts-usage.json'),
+  ];
+  if (process.platform === 'win32') {
+    const appData = process.env.APPDATA;
+    if (appData) {
+      paths.push(path.join(appData, 'Cursor', 'User', 'globalStorage', 'state.vscdb'));
+    }
+  } else if (process.platform === 'darwin') {
+    paths.push(
+      path.join(home, 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage', 'state.vscdb'),
+    );
+  } else {
+    paths.push(path.join(home, '.config', 'Cursor', 'User', 'globalStorage', 'state.vscdb'));
+  }
+
+  const hasData = (await Promise.all(paths.map(pathExists))).some(Boolean);
+  if (hasData) {
+    return { label: 'Cursor', status: 'pass', message: 'usage data or install detected' };
+  }
+  return {
+    label: 'Cursor',
+    status: 'warn',
+    message: 'not detected',
+    help: [
+      'Add ~/.awarts/cursor-usage.json or install the AWARTS Cursor extension',
+      'Docs: https://awarts.club/docs',
+    ],
+  };
+}
+
 async function checkAntigravity(): Promise<Check> {
   const home = os.homedir();
   const dirs = [
@@ -409,6 +452,7 @@ export async function doctorCommand(): Promise<void> {
     await checkCodex(),
     await checkGemini(),
     await checkAntigravity(),
+    await checkCursor(),
   ];
   for (const c of providerChecks) printCheck(c);
 

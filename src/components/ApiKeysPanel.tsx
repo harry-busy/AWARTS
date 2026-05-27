@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Key, Copy, Check, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { AWARTS_API_V1 } from '@/lib/api-url';
 
 export function ApiKeysPanel() {
   const { data: keys, isLoading } = useApiKeys();
@@ -57,8 +58,9 @@ export function ApiKeysPanel() {
           API Keys
         </h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Use keys with the REST API (<code className="text-xs bg-muted px-1 rounded">/api/v1/*</code>) or{' '}
-          <code className="text-xs bg-muted px-1 rounded">@awarts/mcp</code>. Keys are shown once at creation.
+          Production base: <code className="text-xs bg-muted px-1 rounded">{AWARTS_API_V1}</code>. Scopes:{' '}
+          <code className="text-xs">read</code>, <code className="text-xs">write</code>, <code className="text-xs">mcp</code>.
+          Keys are shown once at creation.
         </p>
       </div>
 

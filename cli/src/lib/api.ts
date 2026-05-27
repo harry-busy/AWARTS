@@ -24,7 +24,7 @@ try {
 }
 
 // ── Resolve the API base URL ────────────────────────────────────────────
-const DEFAULT_API_URL = 'https://honorable-bee-242.convex.site';
+const DEFAULT_API_URL = 'https://awarts.club';
 
 async function readConfigUrl(): Promise<string | null> {
   try {

@@ -1,4 +1,4 @@
-const API_BASE = 'https://honorable-bee-242.convex.site';
+const API_BASE = 'https://awarts.club';
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'sync') {

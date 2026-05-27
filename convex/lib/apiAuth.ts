@@ -8,6 +8,7 @@ export interface ResolvedAuth {
   user: Doc<"users">;
   method: AuthMethod;
   apiKeyId?: Id<"api_keys">;
+  scopes?: string[];
 }
 
 async function hashKey(key: string): Promise<string> {
@@ -40,7 +41,12 @@ export async function resolveBearerToken(
     if (!row || row.revokedAt) return null;
     const user = await ctx.db.get(row.userId);
     if (!user) return null;
-    return { user, method: "api_key", apiKeyId: row._id };
+    return {
+      user,
+      method: "api_key",
+      apiKeyId: row._id,
+      scopes: row.scopes,
+    };
   }
 
   // CLI JWT
