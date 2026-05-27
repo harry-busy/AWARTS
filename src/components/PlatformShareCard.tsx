@@ -206,7 +206,7 @@ function XCard({ data }: { data: PlatformCardData & { resolvedAvatar?: string } 
           background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
           borderRadius: 20, padding: '8px 20px', color: 'rgba(255,255,255,0.7)', fontSize: 13, fontFamily: 'monospace',
         }}>
-          Track yours at awarts.com
+          Track yours at awarts.club
         </div>
       </div>
     </div>
@@ -302,7 +302,7 @@ function InstagramCard({ data }: { data: PlatformCardData & { resolvedAvatar?: s
         borderRadius: 24, padding: '10px 28px',
         color: 'rgba(255,255,255,0.5)', fontSize: 15, fontFamily: 'monospace',
       }}>
-        Track yours at awarts.com
+        Track yours at awarts.club
       </div>
     </div>
   );
@@ -391,7 +391,7 @@ function LinkedInCard({ data }: { data: PlatformCardData & { resolvedAvatar?: st
             {(data.providers ?? []).map((p) => <ProviderDot key={p} name={p} />)}
           </div>
           <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, fontFamily: 'monospace' }}>
-            Track your AI coding at awarts.com
+            Track your AI coding at awarts.club
           </div>
         </div>
       </div>
@@ -476,7 +476,7 @@ function WhatsAppCard({ data }: { data: PlatformCardData & { resolvedAvatar?: st
           borderRadius: 16, padding: '6px 16px',
           color: 'rgba(255,255,255,0.5)', fontSize: 12, fontFamily: 'monospace',
         }}>
-          awarts.com
+          awarts.club
         </div>
       </div>
     </div>

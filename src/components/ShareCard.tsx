@@ -162,10 +162,10 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
         {/* Footer */}
         <div className="flex items-center justify-between" style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, paddingTop: 12 }}>
           <div className="space-y-0.5">
-            <span style={{ color: mutedColor, fontSize: 9, fontWeight: 500 }}>Powered by {primaryProviderName === 'Claude' ? 'Claude Sonnet' : primaryProviderName}</span>
+            <span style={{ color: mutedColor, fontSize: 9, fontWeight: 500 }}>Powered by {primaryProviderName}</span>
             <p style={{ color: textColor, fontFamily: 'monospace', fontSize: 10, fontWeight: 600 }}>@{username}</p>
           </div>
-          <span style={{ color: mutedColor, fontFamily: 'monospace', fontSize: 10 }}>awarts.com</span>
+          <span style={{ color: mutedColor, fontFamily: 'monospace', fontSize: 10 }}>awarts.club</span>
         </div>
       </div>
     );
