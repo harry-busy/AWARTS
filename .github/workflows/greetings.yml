@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Welcome first-time contributors
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const isFirstTime = async (type) => {
