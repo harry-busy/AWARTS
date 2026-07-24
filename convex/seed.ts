@@ -256,11 +256,13 @@ export const seedDummyUsers = mutation({
       if (existing) continue;
 
       const provider = PROVIDERS[i % PROVIDERS.length];
+      const avatarUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(u.username)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
       const userId = await ctx.db.insert("users", {
         clerkId: `dummy_${u.username}`,
         username: u.username,
         displayName: u.displayName,
         bio: u.bio,
+        avatarUrl,
         country: u.country,
         region: u.region,
         timezone: u.timezone,
@@ -293,6 +295,24 @@ export const seedDummyUsers = mutation({
     }
 
     return { message: `Created ${created} dummy users with initial usage` };
+  },
+});
+
+// ─── Backfill avatars for already-created dummy users ────────────────────────
+export const patchDummyUserAvatars = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const allUsers = await ctx.db.query("users").collect();
+    const dummyUsers = allUsers.filter((u) => u.referralSource === "dummy_seed");
+    let patched = 0;
+    for (const user of dummyUsers) {
+      if (!user.avatarUrl) {
+        const avatarUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(user.username)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+        await ctx.db.patch(user._id, { avatarUrl });
+        patched++;
+      }
+    }
+    return { message: `Patched ${patched} dummy users with avatars` };
   },
 });
 
