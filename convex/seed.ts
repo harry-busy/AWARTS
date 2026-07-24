@@ -225,6 +225,52 @@ const MODELS = [
   ["cursor-gpt4"],
 ];
 
+const POST_TITLES = [
+  "Built a customer support bot with Claude",
+  "Automated my entire code review pipeline",
+  "Shipped a full RAG system in a weekend",
+  "Integrated AI into our data pipeline",
+  "Generated 10k test cases using Codex",
+  "Refactored legacy codebase with AI assistance",
+  "Built a real-time transcription service",
+  "Automated documentation generation",
+  "Created an AI-powered search engine",
+  "Deployed a multi-agent workflow",
+  "Built a smart invoice parser",
+  "Summarised 500 PDFs in one afternoon",
+  "Wired up AI to our CI/CD pipeline",
+  "Shipped an AI content moderation layer",
+  "Built a semantic code search tool",
+  "Automated database schema migrations",
+  "Created personalised onboarding flows",
+  "Built an AI email triage system",
+  "Shipped multilingual support overnight",
+  "Automated our weekly status reports",
+];
+
+const POST_DESCRIPTIONS = [
+  "Used AI to handle tier-1 queries — cut response time by 80%.",
+  "Every PR now gets an automated review before a human sees it.",
+  "Vector search + LLM reranking. Users love the accuracy.",
+  "ETL jobs that write their own transformation logic now.",
+  "Edge cases we'd never have thought of manually.",
+  "Touched 40-year-old COBOL. AI made it survivable.",
+  "Sub-second latency, runs in the browser via WebAssembly.",
+  "Docs stay in sync with code automatically on every merge.",
+  "Beats keyword search by a huge margin on our internal corpus.",
+  "Three agents, one orchestrator, zero babysitting.",
+  "Extracts line items, totals, and vendor data with high accuracy.",
+  "Built a pipeline, ran overnight, had results by morning.",
+  "Lint, test, summarise — all in one step.",
+  "Toxic content detection that actually understands context.",
+  "Find any function by describing what it does.",
+  "AI proposes the migration, dev reviews, CI applies it.",
+  "Every new user gets a tailored setup guide on day one.",
+  "Inbox zero achieved — AI labels and prioritises everything.",
+  "One prompt, twenty languages, same tone throughout.",
+  "Every Monday morning report writes itself.",
+];
+
 function todayStr(): string {
   return new Date().toISOString().split("T")[0];
 }
@@ -315,6 +361,108 @@ export const patchDummyUserAvatars = mutation({
       patched++;
     }
     return { message: `Patched ${patched} dummy users with avatars` };
+  },
+});
+
+// ─── Seed historical usage + posts + varied levels for dummy users ───────────
+// Level distribution: users 0-24 → L1, 25-49 → L2, 50-74 → L3, 75-89 → L4, 90-99 → L5+
+export const seedDummyPostsAndLevels = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const allUsers = await ctx.db.query("users").collect();
+    const dummyUsers = allUsers.filter((u) => u.referralSource === "dummy_seed");
+    if (dummyUsers.length === 0) {
+      return { message: "No dummy users found. Run seedDummyUsers first." };
+    }
+
+    const today = new Date();
+    let totalUsage = 0;
+    let totalPosts = 0;
+
+    for (let i = 0; i < dummyUsers.length; i++) {
+      const user = dummyUsers[i];
+
+      // Determine active days target per level tier
+      let targetDays: number;
+      if (i < 25)      targetDays = 1 + (i % 5);          // L1: 1–5 days
+      else if (i < 50) targetDays = 7 + ((i - 25) % 6);   // L2: 7–12 days
+      else if (i < 75) targetDays = 14 + ((i - 50) % 12); // L3: 14–25 days
+      else if (i < 90) targetDays = 30 + ((i - 75) % 26); // L4: 30–55 days
+      else             targetDays = 60 + ((i - 90) % 41); // L5: 60–100 days
+
+      // Collect dates this user already has usage for
+      const existingUsage = await ctx.db
+        .query("daily_usage")
+        .withIndex("by_user", (q) => q.eq("userId", user._id))
+        .collect();
+      const existingDates = new Set(existingUsage.map((u) => u.date));
+
+      const provider = PROVIDERS[i % PROVIDERS.length];
+      const source   = SOURCES[i % 2];
+      const model    = MODELS[i % MODELS.length];
+
+      // Build list of historical dates to add (skip ones that exist)
+      const newEntries: Array<{ date: string; usageId: string }> = [];
+      for (let d = targetDays; d >= 1; d--) {
+        const dt = new Date(today);
+        dt.setDate(today.getDate() - d);
+        const dateStr = dt.toISOString().split("T")[0];
+        if (existingDates.has(dateStr)) continue;
+
+        const r = Math.abs(Math.sin(i * 37 + d * 13));
+        const inputTokens  = Math.floor(r * 90000 + 8000);
+        const outputTokens = Math.floor(r * 35000 + 2000);
+        const costUsd      = inputTokens * 0.000003 + outputTokens * 0.000015;
+
+        const usageId = await ctx.db.insert("daily_usage", {
+          userId: user._id,
+          date: dateStr,
+          provider,
+          costUsd,
+          inputTokens,
+          outputTokens,
+          cacheCreationTokens: Math.floor(r * 6000),
+          cacheReadTokens:     Math.floor(r * 12000),
+          models: model,
+          source,
+        });
+        newEntries.push({ date: dateStr, usageId: String(usageId) });
+        totalUsage++;
+      }
+
+      // Create posts for up to 5 of the new usage dates
+      const postDates = newEntries.slice(0, 5);
+      for (const { date, usageId } of postDates) {
+        const existing = await ctx.db
+          .query("posts")
+          .withIndex("by_user_date", (q) =>
+            q.eq("userId", user._id).eq("usageDate", date)
+          )
+          .first();
+        if (existing) continue;
+
+        const titleIdx = (i + parseInt(date.replace(/-/g, ""), 10)) % POST_TITLES.length;
+        const postId = await ctx.db.insert("posts", {
+          userId: user._id,
+          usageDate: date,
+          title: POST_TITLES[titleIdx],
+          description: POST_DESCRIPTIONS[titleIdx % POST_DESCRIPTIONS.length],
+          images: [],
+          providers: [provider],
+          isPublished: true,
+        });
+        // Link post ↔ daily_usage
+        await ctx.db.insert("post_daily_usage", {
+          postId,
+          dailyUsageId: usageId as any,
+        });
+        totalPosts++;
+      }
+    }
+
+    return {
+      message: `Done — added ${totalUsage} usage entries and ${totalPosts} posts across ${dummyUsers.length} dummy users`,
+    };
   },
 });
 
