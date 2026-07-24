@@ -12,4 +12,7 @@ crons.hourly("rate limit cleanup", { minuteUTC: 15 }, internal.rateLimit.cleanup
 // Daily API audit log retention (30 days)
 crons.daily("api audit cleanup", { hourUTC: 4, minuteUTC: 0 }, internal.httpAuth.cleanupAuditLogs);
 
+// Update dummy user usage data every 6 hours
+crons.cron("dummy users usage update", "0 */6 * * *", internal.seed.updateDummyUsersUsage);
+
 export default crons;
