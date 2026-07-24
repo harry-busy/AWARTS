@@ -215,6 +215,7 @@ const DUMMY_INTL_USERS: DummyUser[] = [
 const ALL_DUMMY_USERS = [...DUMMY_INDIAN_USERS, ...DUMMY_INTL_USERS];
 
 const PROVIDERS = ["claude", "codex", "gemini", "antigravity", "cursor"] as const;
+const AVATAR_COLORS = ["6366f1","f59e0b","10b981","ef4444","3b82f6","8b5cf6","ec4899","14b8a6","f97316","84cc16","0ea5e9","a855f7","e11d48","16a34a","b45309"];
 const SOURCES = ["cli", "web"] as const;
 const MODELS = [
   ["claude-sonnet-4-6"],
@@ -256,7 +257,7 @@ export const seedDummyUsers = mutation({
       if (existing) continue;
 
       const provider = PROVIDERS[i % PROVIDERS.length];
-      const avatarUrl = `https://api.dicebear.com/9.x/avataaars/png?seed=${encodeURIComponent(u.username)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&size=128`;
+      const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName)}&background=${AVATAR_COLORS[i % AVATAR_COLORS.length]}&color=fff&size=128&bold=true&rounded=false`;
       const userId = await ctx.db.insert("users", {
         clerkId: `dummy_${u.username}`,
         username: u.username,
@@ -305,8 +306,11 @@ export const patchDummyUserAvatars = mutation({
     const allUsers = await ctx.db.query("users").collect();
     const dummyUsers = allUsers.filter((u) => u.referralSource === "dummy_seed");
     let patched = 0;
-    for (const user of dummyUsers) {
-      const avatarUrl = `https://api.dicebear.com/9.x/avataaars/png?seed=${encodeURIComponent(user.username)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&size=128`;
+    for (let i = 0; i < dummyUsers.length; i++) {
+      const user = dummyUsers[i];
+      const name = encodeURIComponent(user.displayName ?? user.username);
+      const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+      const avatarUrl = `https://ui-avatars.com/api/?name=${name}&background=${color}&color=fff&size=128&bold=true&rounded=false`;
       await ctx.db.patch(user._id, { avatarUrl });
       patched++;
     }
