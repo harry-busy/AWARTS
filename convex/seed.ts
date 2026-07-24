@@ -1,4 +1,5 @@
 import { internalMutation, mutation } from "./_generated/server";
+// seedDummyUsers is a public mutation so it appears in the Convex dashboard
 import { getCurrentUser } from "./users";
 
 // Run once to seed countries_to_regions data (admin only)
@@ -232,8 +233,8 @@ function seededRandom(seed: number): number {
   return x - Math.floor(x);
 }
 
-// ─── Internal: seed 100 dummy users (called from Convex dashboard) ────────────
-export const seedDummyUsers = internalMutation({
+// ─── Seed 100 dummy users (visible + callable from Convex dashboard) ─────────
+export const seedDummyUsers = mutation({
   args: {},
   handler: async (ctx) => {
     const allUsers = await ctx.db.query("users").collect();
