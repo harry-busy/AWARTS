@@ -48,15 +48,15 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
-    "@types/node": "^22.16.0",
-    "chalk": "^5.4.0",
-    "commander": "^13.1.0",
-    "jose": "^5.10.0",
-    "nanoid": "^5.1.0",
-    "open": "^10.1.0",
-    "ora": "^8.2.0",
-    "typescript": "^5.8.0",
-    "vitest": "^3.2.0"
+    "@types/node": "^26.4.1",
+    "chalk": "^6.0.0",
+    "commander": "^15.0.0",
+    "jose": "^6.2.10",
+    "nanoid": "^6.0.1",
+    "open": "^11.0.2",
+    "ora": "^9.4.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
