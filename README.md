@@ -80,3 +80,6 @@ AWARTS is currently seeking contributions for two major architectural improvemen
   <img src="https://capsule-render.vercel.app/api?type=waving&color=e87a35&height=100&section=footer" />
   <p>Shipped by <b>Harry</b></p>
 </div>
+
+---
+Built by [Harshal Gandhi](https://www.harshalgandhi.com), Co-Founder & CEO of [Ospyr Ventures](https://ospyrventures.com).
